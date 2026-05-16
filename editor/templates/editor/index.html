@@ -1,0 +1,102 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Audio JSON Editor</title>
+    <link rel="stylesheet" href="{% static 'editor/styles.css' %}">
+  </head>
+  <body>
+    <aside class="sidebar">
+      <h1>Transcript Editor</h1>
+      <p class="muted">Load one JSON file and matching channel audio, then review each speaker word by word.</p>
+      <form id="upload-form" class="stack">
+        {% csrf_token %}
+        <label>
+          <span>Labeling JSON</span>
+          <input name="json_file" type="file" accept="application/json,.json" required>
+          <small id="json-file-summary">No JSON selected.</small>
+        </label>
+
+        <label id="audio-upload-field">
+          <span>Channel WAV files</span>
+          <input name="audio_files" type="file" accept="audio/wav,.wav,.wave" multiple>
+          <small id="audio-file-summary">No audio selected yet.</small>
+        </label>
+
+        <label>
+          <span>Output folder</span>
+          <div class="folder-row">
+            <input id="output-folder" name="output_folder" type="text" placeholder="Choose where the fixed JSON should autosave" required>
+            <button id="browse-output-folder" type="button">Browse</button>
+          </div>
+          <small id="output-folder-summary">No output folder selected.</small>
+        </label>
+
+        <small>
+          Browser upload progress appears in the browser; the status below starts once Django begins processing files.
+        </small>
+        <button type="submit" class="primary">Load uploaded files</button>
+      </form>
+
+      <div id="sidebar-status" class="status info">Upload a JSON file and WAV files to begin.</div>
+
+      <section id="loaded-panel" class="stack" hidden>
+        <hr>
+        <div id="workspace-summary" class="summary-card"></div>
+        <div id="json-name"></div>
+        <div>
+          <strong>Audio files:</strong>
+          <ul id="audio-list"></ul>
+        </div>
+        <p id="download-caption" class="muted">
+          The output JSON is created in your selected folder and autosaved after popup Save, Add, Delete, and Play word changes.
+        </p>
+        <button id="download-button" type="button">Download fixed JSON</button>
+        <div id="download-warning" class="status warning" hidden>
+          The latest autosave did not complete. Download anyway to get the last saved output JSON.
+          <a id="download-anyway" href="/download/">Download anyway</a>
+        </div>
+
+        <hr>
+        <label>
+          <span>Speaker / channel</span>
+          <select id="participant-select"></select>
+        </label>
+        <button id="change-speaker" type="button">Change speaker</button>
+        <div id="speaker-warning" class="status warning" hidden>
+          The latest autosave did not complete. Please retry saving before changing speakers, or change anyway to discard unsaved browser edits.
+          <button id="change-anyway" type="button">Change speaker anyway</button>
+        </div>
+      </section>
+    </aside>
+
+    <main class="main">
+      <section id="empty-state" class="empty-state">
+        <h2>Start by loading a transcript</h2>
+        <p>
+          Once files are loaded, this area becomes your review workspace with a sticky audio player,
+          searchable transcript, word timing warnings, and JSON download controls.
+        </p>
+        <div class="empty-grid">
+          <div><strong>1. Upload</strong><span>Choose the labeling JSON and matching WAV files.</span></div>
+          <div><strong>2. Review</strong><span>Select a speaker, play audio, and click words to edit.</span></div>
+          <div><strong>3. Export</strong><span>Save edits, then download the fixed JSON.</span></div>
+        </div>
+      </section>
+
+      <section id="loading-state" class="loading-state" hidden>
+        <div class="spinner" aria-hidden="true"></div>
+        <h2>Loading...</h2>
+        <p id="loading-detail">Preparing your transcript workspace.</p>
+      </section>
+
+      <section id="audio-root" class="sticky-audio"></section>
+      <section id="message" class="status" hidden></section>
+      <section id="transcript-root"></section>
+    </main>
+
+    <script src="{% static 'editor/app.js' %}"></script>
+  </body>
+</html>
