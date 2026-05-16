@@ -34,9 +34,10 @@ def main() -> None:
 
     django.setup()
 
-    port = find_free_port()
+    port = int(os.environ.get("TRANSCRIPT_EDITOR_PORT") or find_free_port())
     url = f"http://127.0.0.1:{port}/"
-    threading.Timer(1.25, lambda: webbrowser.open(url)).start()
+    if os.environ.get("TRANSCRIPT_EDITOR_NO_BROWSER") != "1":
+        threading.Timer(1.25, lambda: webbrowser.open(url)).start()
     call_command("runserver", f"127.0.0.1:{port}", use_reloader=False)
 
 

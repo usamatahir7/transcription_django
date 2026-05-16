@@ -1,0 +1,71 @@
+name: Build macOS App
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pyinstaller
+
+      - name: Run Django checks
+        env:
+          DJANGO_SETTINGS_MODULE: transcription_site.settings
+        run: |
+          python manage.py check
+
+      - name: Build macOS app
+        run: |
+          pyinstaller --noconfirm --clean --onedir --name TranscriptEditor \
+            --add-data "editor/templates:editor/templates" \
+            --add-data "editor/static:editor/static" \
+            --hidden-import tkinter \
+            --hidden-import django.contrib.sessions.backends.file \
+            --hidden-import django.contrib.staticfiles \
+            --hidden-import django.contrib.contenttypes \
+            --hidden-import django.contrib.auth \
+            --hidden-import django.contrib.messages \
+            --hidden-import tzdata \
+            launcher.py
+
+      - name: Smoke test packaged app
+        env:
+          TRANSCRIPT_EDITOR_PORT: "8765"
+          TRANSCRIPT_EDITOR_NO_BROWSER: "1"
+        run: |
+          ./dist/TranscriptEditor/TranscriptEditor > /tmp/transcript-editor.log 2>&1 &
+          echo $! > /tmp/transcript-editor.pid
+          for i in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8765/ > /tmp/transcript-editor-home.html; then
+              break
+            fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:8765/static/editor/styles.css > /dev/null
+          curl --fail --silent http://127.0.0.1:8765/static/editor/app.js > /dev/null
+          kill "$(cat /tmp/transcript-editor.pid)"
+
+      - name: Zip macOS build
+        run: |
+          cd dist
+          zip -r TranscriptEditor-macOS.zip TranscriptEditor
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TranscriptEditor-macOS
+          path: dist/TranscriptEditor-macOS.zip
